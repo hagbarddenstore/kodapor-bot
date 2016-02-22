@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/hagbarddenstore/kodapor-bot/handlers/ping"
 	"github.com/hagbarddenstore/kodapor-bot/irc"
 	"github.com/hagbarddenstore/kodapor-bot/version"
 	"os"
@@ -19,6 +20,8 @@ func main() {
 
 	fmt.Fprintf(os.Stdout, "main: using driver %s\n", driverName)
 
+	var driver Driver
+
 	switch driverName {
 	case "irc":
 		host := os.Getenv("KAB_IRC_HOST")
@@ -33,7 +36,7 @@ func main() {
 			return
 		}
 
-		driver, err := irc.New(host, port, username, channels)
+		driver, err = irc.New(host, port, username, channels)
 
 		if err != nil {
 			fmt.Fprintf(os.Stdout, "main: %s\n", err.Error())
@@ -43,6 +46,8 @@ func main() {
 
 		driver.Connect()
 
+		registerHandlers(driver)
+
 	default:
 		fmt.Fprintln(os.Stderr, "main: no suitable driver found")
 
@@ -50,6 +55,10 @@ func main() {
 	}
 
 	waitForShutdown()
+
+	if driver != nil {
+		driver.Disconnect()
+	}
 }
 
 func waitForShutdown() {
@@ -61,7 +70,7 @@ func waitForShutdown() {
 	go func() {
 		<-c
 
-		fmt.Fprintf(os.Stderr, "Quitting!\n")
+		fmt.Fprintf(os.Stdout, "Quitting!\n")
 
 		os.Exit(0)
 	}()
@@ -69,4 +78,8 @@ func waitForShutdown() {
 	for {
 		time.Sleep(10 * time.Second)
 	}
+}
+
+func registerHandlers(driver Driver) {
+	driver.MessageReceived(ping.Handler)
 }
