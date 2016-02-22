@@ -41,7 +41,7 @@ func main() {
 			return
 		}
 
-		go driver.Connect()
+		driver.Connect()
 
 	default:
 		fmt.Fprintln(os.Stderr, "main: no suitable driver found")
