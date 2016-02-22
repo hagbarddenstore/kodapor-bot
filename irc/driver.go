@@ -3,6 +3,7 @@ package irc
 import (
 	"bufio"
 	"fmt"
+	"github.com/hagbarddenstore/kodapor-bot/messages"
 	"net"
 	"os"
 	"strings"
@@ -11,12 +12,13 @@ import (
 
 // Driver defines the IRC driver.
 type Driver struct {
-	host       string
-	port       int
-	username   string
-	channels   []string
-	connection net.Conn
-	write      chan string
+	host                    string
+	port                    int
+	username                string
+	channels                []string
+	connection              net.Conn
+	write                   chan string
+	messageReceivedHandlers []messages.MessageHandler
 }
 
 // New creates a new IRC driver.
@@ -63,11 +65,23 @@ func (d *Driver) Connect() {
 	}
 }
 
+func (d *Driver) Disconnect() {
+	// ???
+}
+
+func (d *Driver) MessageReceived(handler messages.MessageHandler) {
+	d.messageReceivedHandlers = append(d.messageReceivedHandlers, handler)
+}
+
+func (d *Driver) Write(message string) {
+	d.write <- message
+}
+
 func (d *Driver) startReadLoop() {
 	buffer := bufio.NewReaderSize(d.connection, 1024)
 
 	for {
-		message, err := buffer.ReadString('\n')
+		fullMessage, err := buffer.ReadString('\n')
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "irc: %s\n", err.Error())
@@ -75,7 +89,17 @@ func (d *Driver) startReadLoop() {
 			continue
 		}
 
-		fmt.Fprintf(os.Stdout, "irc: received message %s\n", strings.TrimSpace(message))
+		fmt.Fprintf(os.Stdout, "irc: received message %s\n", strings.TrimSpace(fullMessage))
+
+		message := NewMessage(d, fullMessage)
+
+		fmt.Fprintf(os.Stdout, "irc: parsed message %s\n", message.String())
+
+		if len(d.messageReceivedHandlers) > 0 {
+			for _, handler := range d.messageReceivedHandlers {
+				handler(message)
+			}
+		}
 	}
 }
 
