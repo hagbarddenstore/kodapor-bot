@@ -59,7 +59,7 @@ func (d *Driver) Connect() {
 	for _, channel := range d.channels {
 		d.write <- fmt.Sprintf("JOIN %s\r\n", channel)
 
-		d.write <- fmt.Sprintf("PRIVMSG %s :%s\r\n", channel, "Hello, world!")
+		d.write <- fmt.Sprintf("PRIVMSG %s :%s\r\n", channel, "Never fear, I is here")
 	}
 }
 
